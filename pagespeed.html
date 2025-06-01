@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>SEO Audit Checker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f4f6f8;
+            color: #333;
+            margin: 0;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        h1 {
+            color: #0071f2;
+            margin-bottom: 1rem;
+        }
+        
+        .container {
+            background: #fff;
+            padding: 2rem;
+            border-radius: 10px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.1);
+        }
+        
+        label {
+            font-weight: bold;
+            margin-top: 1rem;
+            display: block;
+        }
+        
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        
+        button {
+            background-color: #0071f2;
+            color: #fff;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 5px;
+            margin-top: 1rem;
+            cursor: pointer;
+            width: 100%;
+            font-size: 16px;
+        }
+        
+        .loading {
+            margin-top: 1rem;
+            color: #888;
+        }
+        
+        .error {
+            color: red;
+            margin-top: 1rem;
+        }
+        
+        .results {
+            margin-top: 1.5rem;
+        }
+        
+        .score {
+            font-size: 24px;
+            font-weight: bold;
+            color: #28a745;
+        }
+        
+        ul {
+            padding-left: 1.2rem;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>SEO Audit Checker</h1>
+    <div class="container">
+        <label for="url">Website URL:</label>
+        <input type="text" id="url" placeholder="https://example.com" />
+
+        <button onclick="runAudit()">Run SEO Audit</button>
+
+        <div class="loading" id="loading" style="display: none;">Loading audit...</div>
+        <div class="error" id="error"></div>
+        <div class="results" id="results"></div>
+    </div>
+
+    <script>
+        const GOOGLE_API_KEY = "AIzaSyBfR_yhPQ3qtCvicJqS3WB2GwNIjVArOTs";
+
+        async function runAudit() {
+            const url = document.getElementById("url").value.trim();
+            const loading = document.getElementById("loading");
+            const errorDiv = document.getElementById("error");
+            const resultsDiv = document.getElementById("results");
+
+            errorDiv.textContent = "";
+            resultsDiv.innerHTML = "";
+
+            if (!url) {
+                errorDiv.textContent = "Please enter a valid URL.";
+                return;
+            }
+
+            const endpoint = `https://www.googleapis.com/pagespeedonline/v5/runPagespeed?url=${encodeURIComponent(url)}&category=SEO&key=${GOOGLE_API_KEY}`;
+
+            loading.style.display = "block";
+
+            try {
+                const response = await fetch(endpoint);
+                if (!response.ok) {
+                    throw new Error(`Error: ${response.status}`);
+                }
+
+                const data = await response.json();
+                const seoScore = data.lighthouseResult.categories.seo.score * 100;
+                const audits = data.lighthouseResult.audits;
+
+                const failedAudits = Object.values(audits).filter(audit => audit.score !== 1 && audit.scoreDisplayMode === "binary");
+
+                resultsDiv.innerHTML = `
+          <div class="score">SEO Score: ${seoScore}/100</div>
+          <h3>Recommendations:</h3>
+          <ul>
+            ${failedAudits.length > 0 ?
+                            failedAudits.map(a => `<li>${a.title}: ${a.description}</li>`).join("") :
+                            "<li>Great! No major SEO issues found.</li>"
+                        }
+          </ul>
+        `;
+                } catch (err) {
+                    console.error(err);
+                    errorDiv.textContent = "Failed to fetch results. Check the URL or API key.";
+                } finally {
+                    loading.style.display = "none";
+                }
+            }
+    </script>
+</body>
+
+</html>
